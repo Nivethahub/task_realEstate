@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PropertyType {
+  APARTMENT
+  INDEPENDENT_HOUSE
+  VILLA
+  PLOT
+  COMMERCIAL
+}
+
+enum ListingType {
+  SALE
+  RENT
+}
+
+enum InquiryStatus {
+  NEW
+  CONTACTED
+  CLOSED
+}
+
+model User {
+  id            String         @id @default(uuid()) @db.Uuid
+  name          String         @db.VarChar(100)
+  email         String         @unique @db.VarChar(255)
+  passwordHash  String
+  phone         String?        @db.VarChar(20)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  properties    Property[]
+  inquiries     Inquiry[]
+  refreshTokens RefreshToken[]
+
+  @@index([createdAt])
+}
+
+model Property {
+  id           String       @id @default(uuid()) @db.Uuid
+  ownerId      String       @db.Uuid
+  title        String       @db.VarChar(160)
+  isArchive    Boolean      @default(false)
+  description  String       @db.Text
+  city         String       @db.VarChar(80)
+  locality     String       @db.VarChar(100)
+  address      String       @db.VarChar(255)
+  price        Decimal      @db.Decimal(14, 2)
+  bedrooms     Int
+  bathrooms    Int
+  areaSqft     Int
+  propertyType PropertyType
+  listingType  ListingType  @default(SALE)
+  images       String[]     @default([])
+  amenities    String[]     @default([])
+  isAvailable  Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  owner        User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  inquiries    Inquiry[]
+
+  @@index([city, locality])
+  @@index([city, propertyType, bedrooms])
+  @@index([price])
+  @@index([listingType, isAvailable, createdAt])
+  @@index([createdAt, id])
+}
+
+model Inquiry {
+  id         String        @id @default(uuid()) @db.Uuid
+  propertyId String        @db.Uuid
+  userId     String        @db.Uuid
+  message    String        @db.VarChar(1000)
+  status     InquiryStatus @default(NEW)
+  createdAt  DateTime      @default(now())
+  property   Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // One inquiry per user/property pair prevents duplicate submissions.
+  @@unique([userId, propertyId])
+  @@index([propertyId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}

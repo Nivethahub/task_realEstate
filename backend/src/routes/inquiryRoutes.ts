@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { createInquiry, myInquiries, receivedInquiries } from '../controllers/inquiryController';
+import { requireAuth } from '../middleware/auth';
+import { rateLimit } from 'express-rate-limit';
+const router = Router();
+const inquiryLimiter = rateLimit({ windowMs: 60 * 60 * 1000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false, message: { success: false, message: 'Inquiry limit reached. Please try again later.' } });
+router.get('/mine', requireAuth, myInquiries);
+router.get('/received', requireAuth, receivedInquiries);
+router.post('/:propertyId', requireAuth, inquiryLimiter, createInquiry);
+export default router;

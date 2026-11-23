@@ -1,0 +1,12 @@
+import { Router } from 'express';
+import { createProperty, deleteProperty, getProperty, listProperties, myProperties, similarProperties, updateProperty } from '../controllers/propertyController';
+import { requireAuth } from '../middleware/auth';
+const router = Router();
+router.get('/', listProperties);
+router.get('/mine', requireAuth, myProperties);
+router.post('/', requireAuth, createProperty);
+router.get('/:id/similar', similarProperties);
+router.get('/:id', getProperty);
+router.patch('/:id', requireAuth, updateProperty);
+router.delete('/:id', requireAuth, deleteProperty);
+export default router;
